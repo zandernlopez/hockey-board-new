@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hockey Coach Board</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      background: #0b1020;
+      color: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 16px;
+      gap: 16px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      text-align: center;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .toolbar.secondary {
+      justify-content: center;
+    }
+
+    .toolbar button,
+    .save-load button {
+      border: none;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      background: #21263a;
+      color: #f5f5f5;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.06s ease, box-shadow 0.06s ease, background 0.1s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+      white-space: nowrap;
+    }
+
+    .toolbar button span.swatch {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid #f5f5f5;
+    }
+
+    .toolbar button:hover,
+    .save-load button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+      background: #2b3350;
+    }
+
+    .toolbar button:active,
+    .save-load button:active {
+      transform: translateY(0);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    }
+
+    .toolbar button.home-player .swatch {
+      background: #1a8cff;
+    }
+
+    .toolbar button.away-player .swatch {
+      background: #ff3b3b;
+    }
+
+    .toolbar button.puck .swatch {
+      background: #111111;
+    }
+
+    .toolbar button.clear {
+      background: #b32d3b;
+    }
+
+    .toolbar button.clear:hover {
+      background: #d43b4c;
+    }
+
+    .view-label {
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #14192a;
+      padding: 6px 10px;
+      border-radius: 999px;
+    }
+
+    .view-label select {
+      background: #21263a;
+      color: #f5f5f5;
+      border-radius: 999px;
+      border: 1px solid #3a4366;
+      padding: 4px 10px;
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .hint {
+      text-align: center;
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    .hint strong {
+      font-weight: 600;
+    }
+
+    /* Rink board */
+    .rink-wrapper {
+      background: radial-gradient(circle at top, #1d2840 0, #050814 55%);
+      padding: 10px;
+      border-radius: 22px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+    }
+
+    .rink {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 2 / 1; /* Wide rink */
+      background: #f7fbff;
+      border-radius: 22px;
+      overflow: hidden;
+      border: 4px solid #e0e0e0;
+      transition: transform 0.25s ease;
+    }
+
+    .rink.view-full {
+      transform: scale(1);
+      transform-origin: center center;
+    }
+
+    .rink.view-offense {
+      transform: scale(2);
+      transform-origin: left center;
+    }
+
+    .rink.view-defense {
+      transform: scale(2);
+      transform-origin: right center;
+    }
+
+    .rink.view-neutral {
+      transform: scale(2);
+      transform-origin: center center;
+    }
+
+    /* Rink markings */
+    .rink::before,
+    .rink::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    /* Center red line */
+    .rink::before {
+      border-left: 4px solid #d32f2f;
+      left: 50%;
+    }
+
+    /* Blue lines */
+    .blue-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: #1565c0;
+    }
+
+    .blue-line.left {
+      left: 25%;
+    }
+
+    .blue-line.right {
+      right: 25%;
+    }
+
+    /* Faceoff circles */
+    .circle {
+      position: absolute;
+      width: 18%;
+      aspect-ratio: 1/1;
+      border-radius: 50%;
+      border: 3px solid #1565c0;
+      box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.2);
+    }
+
+    .circle.center {
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      border-color: #d32f2f;
+      box-shadow: 0 0 0 2px rgba(211, 47, 47, 0.2);
+    }
+
+    .circle.offense-left {
+      left: 14%;
+      top: 30%;
+    }
+
+    .circle.offense-right {
+      left: 14%;
+      bottom: 30%;
+    }
+
+    .circle.defense-left {
+      right: 14%;
+      top: 30%;
+    }
+
+    .circle.defense-right {
+      right: 14%;
+      bottom: 30%;
+    }
+
+    /* Goal creases (simplified) */
+    .crease {
+      position: absolute;
+      width: 6%;
+      aspect-ratio: 1.3 / 1;
+      border-radius: 50% 50% 50% 50%;
+      border: 3px solid #1565c0;
+    }
+
+    .crease.left {
+      left: 1.5%;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .crease.right {
+      right: 1.5%;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    /* Draggable pieces */
+    .piece {
+      position: absolute;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+      border: 2px solid rgba(0, 0, 0, 0.45);
+      transform: translate(-50%, -50%);
+    }
+
+    .piece.dragging {
+      cursor: grabbing;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
+    }
+
+    .piece.player.home {
+      background: #1a8cff;
+      color: #ffffff;
+    }
+
+    .piece.player.away {
+      background: #ff3b3b;
+      color: #ffffff;
+    }
+
+    .piece.puck {
+      width: 24px;
+      height: 24px;
+      background: #111111;
+      border-radius: 50%;
+      border: 2px solid #000000;
+    }
+
+    .save-load {
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .save-load-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    #playData {
+      width: 100%;
+      min-height: 110px;
+      background: #050814;
+      color: #e0e6ff;
+      border-radius: 8px;
+      border: 1px solid #30395c;
+      padding: 6px 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.8rem;
+      resize: vertical;
+    }
+
+    @media (max-width: 700px) {
+      h1 {
+        font-size: 1.3rem;
+      }
+
+      .piece {
+        width: 30px;
+        height: 30px;
+        font-size: 0.75rem;
+      }
+
+      .piece.puck {
+        width: 20px;
+        height: 20px;
+      }
+
+      .view-label {
+        font-size: 0.8rem;
+      }
+
+      .toolbar button,
+      .save-load button {
+        font-size: 0.8rem;
+        padding: 6px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <h1>Hockey Coach Board</h1>
+
+    <div class="toolbar">
+      <button class="home-player" id="addHome">
+        <span class="swatch"></span>
+        Add Home Player
+      </button>
+      <button class="away-player" id="addAway">
+        <span class="swatch"></span>
+        Add Away Player
+      </button>
+      <button class="puck" id="addPuck">
+        <span class="swatch"></span>
+        Add Puck
+      </button>
+      <button class="clear" id="clearBoard">
+        🧹 Clear Board
+      </button>
+    </div>
+
+    <div class="toolbar secondary">
+      <label class="view-label">
+        View:
+        <select id="viewMode">
+          <option value="full">Full Ice</option>
+          <option value="offense">Offensive Zone</option>
+          <option value="neutral">Neutral Zone</option>
+          <option value="defense">Defensive Zone</option>
+        </select>
+      </label>
+    </div>
+
+    <p class="hint">
+      <strong>Drag</strong> to move pieces. <strong>Single-click a player</strong> to edit their number/label.
+      <strong>Double-click any piece</strong> to delete it.
+      Use the JSON box below to <strong>save/load plays</strong>.
+    </p>
+
+    <div class="rink-wrapper">
+      <div class="rink view-full" id="rink">
+        <!-- Rink lines & circles -->
+        <div class="blue-line left"></div>
+        <div class="blue-line right"></div>
+
+        <div class="circle center"></div>
+        <div class="circle offense-left"></div>
+        <div class="circle offense-right"></div>
+        <div class="circle defense-left"></div>
+        <div class="circle defense-right"></div>
+
+        <div class="crease left"></div>
+        <div class="crease right"></div>
+      </div>
+    </div>
+
+    <div class="save-load">
+      <div class="save-load-controls">
+        <button id="exportPlay">💾 Export Play</button>
+        <button id="importPlay">📥 Load Play</button>
+      </div>
+      <textarea id="playData" placeholder="Play JSON will appear here when you export. Copy/paste this text to save plays, then paste it back in and click &quot;Load Play&quot; to restore."></textarea>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const rink = document.getElementById("rink");
+      const addHomeBtn = document.getElementById("addHome");
+      const addAwayBtn = document.getElementById("addAway");
+      const addPuckBtn = document.getElementById("addPuck");
+      const clearBtn = document.getElementById("clearBoard");
+      const exportBtn = document.getElementById("exportPlay");
+      const importBtn = document.getElementById("importPlay");
+      const playDataTextarea = document.getElementById("playData");
+      const viewModeSelect = document.getElementById("viewMode");
+
+      let homeCount = 0;
+      let awayCount = 0;
+
+      let draggingPiece = null;
+      let dragOffsetX = 0;
+      let dragOffsetY = 0;
+      let dragStartX = 0;
+      let dragStartY = 0;
+      let rinkRect = null;
+
+      function updateViewMode() {
+        const mode = viewModeSelect.value;
+        rink.classList.remove("view-full", "view-offense", "view-defense", "view-neutral");
+        switch (mode) {
+          case "offense":
+            rink.classList.add("view-offense");
+            break;
+          case "defense":
+            rink.classList.add("view-defense");
+            break;
+          case "neutral":
+            rink.classList.add("view-neutral");
+            break;
+          case "full":
+          default:
+            rink.classList.add("view-full");
+        }
+      }
+
+      viewModeSelect.addEventListener("change", updateViewMode);
+      updateViewMode();
+
+      function attachPieceEvents(piece) {
+        piece.addEventListener("pointerdown", onPointerDownPiece);
+        piece.addEventListener("click", onClickPieceLabel);
+        piece.addEventListener("dblclick", () => {
+          piece.remove();
+        });
+      }
+
+      function createPiece(type, team, options = {}) {
+        const piece = document.createElement("div");
+        piece.classList.add("piece");
+        piece.dataset.type = type;
+
+        if (type === "player") {
+          piece.classList.add("player", team);
+          piece.dataset.team = team;
+
+          let label = options.label;
+          if (!label) {
+            if (team === "home") {
+              homeCount++;
+              label = "H" + homeCount;
+            } else {
+              awayCount++;
+              label = "A" + awayCount;
+            }
+          }
+          piece.textContent = label;
+          piece.dataset.label = label;
+        } else if (type === "puck") {
+          piece.classList.add("puck");
+          piece.dataset.team = "";
+          piece.dataset.label = "";
+        }
+
+        // Place at center ice or use saved position
+        rinkRect = rink.getBoundingClientRect();
+        let xPx, yPx;
+
+        if (typeof options.x === "number" && typeof options.y === "number") {
+          xPx = options.x * rinkRect.width;
+          yPx = options.y * rinkRect.height;
+        } else {
+          xPx = rinkRect.width / 2;
+          yPx = rinkRect.height / 2;
+        }
+
+        piece.style.left = xPx + "px";
+        piece.style.top = yPx + "px";
+
+        attachPieceEvents(piece);
+        rink.appendChild(piece);
+      }
+
+      function createPieceFromState(type, team, label, x, y) {
+        const options = {};
+        if (typeof x === "number" && typeof y === "number") {
+          options.x = x;
+          options.y = y;
+        }
+        if (label) {
+          options.label = label;
+        }
+        createPiece(type, team, options);
+      }
+
+      function onPointerDownPiece(e) {
+        draggingPiece = e.currentTarget;
+        draggingPiece.classList.add("dragging");
+        draggingPiece.setPointerCapture(e.pointerId);
+
+        rinkRect = rink.getBoundingClientRect();
+
+        const pieceRect = draggingPiece.getBoundingClientRect();
+        dragOffsetX = e.clientX - pieceRect.left;
+        dragOffsetY = e.clientY - pieceRect.top;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        draggingPiece.dataset.dragMoved = "false";
+
+        document.addEventListener("pointermove", onPointerMove);
+        document.addEventListener("pointerup", onPointerUp);
+        document.addEventListener("pointercancel", onPointerUp);
+      }
+
+      function onPointerMove(e) {
+        if (!draggingPiece) return;
+        if (!rinkRect) rinkRect = rink.getBoundingClientRect();
+
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+          draggingPiece.dataset.dragMoved = "true";
+        }
+
+        let x = e.clientX - rinkRect.left - dragOffsetX + draggingPiece.offsetWidth / 2;
+        let y = e.clientY - rinkRect.top - dragOffsetY + draggingPiece.offsetHeight / 2;
+
+        // constrain within rink
+        const halfW = draggingPiece.offsetWidth / 2;
+        const halfH = draggingPiece.offsetHeight / 2;
+
+        const minX = halfW;
+        const maxX = rinkRect.width - halfW;
+        const minY = halfH;
+        const maxY = rinkRect.height - halfH;
+
+        x = Math.max(minX, Math.min(maxX, x));
+        y = Math.max(minY, Math.min(maxY, y));
+
+        draggingPiece.style.left = x + "px";
+        draggingPiece.style.top = y + "px";
+      }
+
+      function onPointerUp(e) {
+        if (draggingPiece) {
+          draggingPiece.classList.remove("dragging");
+          try {
+            draggingPiece.releasePointerCapture(e.pointerId);
+          } catch (_) {
+            // ignore if already released
+          }
+        }
+        draggingPiece = null;
+        document.removeEventListener("pointermove", onPointerMove);
+        document.removeEventListener("pointerup", onPointerUp);
+        document.removeEventListener("pointercancel", onPointerUp);
+      }
+
+      function onClickPieceLabel(e) {
+        const piece = e.currentTarget;
+        // Don't edit label if this click came after dragging
+        if (piece.dataset.dragMoved === "true") return;
+        if (!piece.classList.contains("player")) return;
+
+        const currentLabel = piece.dataset.label || piece.textContent || "";
+        const newLabel = window.prompt("Set player label/number:", currentLabel);
+        if (newLabel && newLabel.trim() !== "") {
+          const trimmed = newLabel.trim();
+          piece.textContent = trimmed;
+          piece.dataset.label = trimmed;
+        }
+      }
+
+      function clearPieces() {
+        const pieces = rink.querySelectorAll(".piece");
+        pieces.forEach((p) => p.remove());
+        homeCount = 0;
+        awayCount = 0;
+      }
+
+      function exportPlay() {
+        rinkRect = rink.getBoundingClientRect();
+        const pieces = Array.from(rink.querySelectorAll(".piece"));
+        const data = pieces.map((piece) => {
+          const type = piece.dataset.type || "";
+          const team = piece.dataset.team || null;
+          const label = piece.dataset.label || piece.textContent || null;
+
+          const leftPx = parseFloat(piece.style.left);
+          const topPx = parseFloat(piece.style.top);
+          const x = leftPx / rinkRect.width;
+          const y = topPx / rinkRect.height;
+
+          return { type, team, label, x, y };
+        });
+
+        playDataTextarea.value = JSON.stringify(data, null, 2);
+      }
+
+      function importPlay() {
+        const text = playDataTextarea.value.trim();
+        if (!text) {
+          alert("Paste play JSON into the box first.");
+          return;
+        }
+
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (err) {
+          alert("Invalid JSON: " + err.message);
+          return;
+        }
+
+        if (!Array.isArray(data)) {
+          alert("Play JSON should be an array of pieces.");
+          return;
+        }
+
+        clearPieces();
+
+        data.forEach((item) => {
+          if (!item || typeof item !== "object") return;
+          const { type, team, label, x, y } = item;
+          if (!type) return;
+          createPieceFromState(type, team, label, x, y);
+        });
+
+        // Recount players so new ones continue numbering reasonably
+        homeCount = rink.querySelectorAll(".piece.player.home").length;
+        awayCount = rink.querySelectorAll(".piece.player.away").length;
+      }
+
+      addHomeBtn.addEventListener("click", () => {
+        createPiece("player", "home");
+      });
+
+      addAwayBtn.addEventListener("click", () => {
+        createPiece("player", "away");
+      });
+
+      addPuckBtn.addEventListener("click", () => {
+        createPiece("puck");
+      });
+
+      clearBtn.addEventListener("click", () => {
+        clearPieces();
+        playDataTextarea.value = "";
+      });
+
+      exportBtn.addEventListener("click", exportPlay);
+      importBtn.addEventListener("click", importPlay);
+    })();
+  </script>
+</body>
+</html>
